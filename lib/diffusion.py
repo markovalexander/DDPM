@@ -301,7 +301,7 @@ class GaussianDiffusion(nn.Module):
         if self.loss_type == 'kl':
             losses = self._vb_terms_bpd(model=model, x_0=x_0, x_t=x_t, t=t,
                                         clip_denoised=False, return_pred_x0=False)['output']
-
+            losses = losses * self.num_timesteps
         elif self.loss_type == 'mse':
             assert self.model_var_type != 'learned'
             target = {
@@ -330,7 +330,7 @@ class GaussianDiffusion(nn.Module):
             small_log_var = extract(small_log_var, t, x_t.shape)
             var, log_var = get_variance(small_log_var, large_log_var, var_coef)
             mean_losses = torch.mean((target - model_output).view(x_0.shape[0], -1) ** 2, dim=1)
-            return mean_losses + 0.001 * kl_losses
+            return mean_losses + 0.001 * kl_losses * self.num_timesteps
         else:
             raise NotImplementedError(self.loss_type)
 
