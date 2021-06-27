@@ -38,7 +38,7 @@ model:
 
   diffusion:
     model_mean_type: "eps"
-    model_var_type: "learned"
+    model_var_type: "learned_improved"
     loss_type: "hybrid"
 
   schedule:
