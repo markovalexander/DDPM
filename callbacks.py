@@ -8,12 +8,12 @@ from utils import progressive_samples_fn
 
 def get_checkpoint_callback(path):
     checkpoint_callback = pl.callbacks.ModelCheckpoint(dirpath=path,
-                                                      filename='ddp_{epoch:02d}-{val_loss:.2f}',
-                                                      monitor='val_loss',
-                                                      verbose=True,
-                                                      save_last=True,
-                                                      save_weights_only=True,
-                                                      every_n_val_epochs=5)
+                                                       filename='ddp_{epoch:02d}-{val_loss:.2f}',
+                                                       monitor='val_loss',
+                                                       verbose=True,
+                                                       save_last=True,
+                                                       save_weights_only=True,
+                                                       every_n_val_epochs=5)
     return checkpoint_callback
 
 
@@ -36,4 +36,3 @@ class ImageLoggerCallback(pl.callbacks.Callback):
                                       caption='progressive samples')
 
         wandb.log({"samples": samples_log, 'progressive_samples': progressive_log})
-
