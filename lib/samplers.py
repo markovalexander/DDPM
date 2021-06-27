@@ -64,8 +64,8 @@ class LossSecondMomentResampler(AbstractSampler):
         return (self._loss_counts == self.history_per_term).all()
 
 
-def get_time_sampler(cfg):
-    if cfg.task.model.sampler.upper() == "LOSS-SECOND-MOMENT":
+def get_time_sampler(sampler_type):
+    if sampler_type == "LOSS-SECOND-MOMENT":
         return LossSecondMomentResampler
     else:
         return UniformSampler

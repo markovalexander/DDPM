@@ -22,7 +22,7 @@ class DDP(pl.LightningModule):
         self.ema = UNet(**self.conf.model.unet, predict_var=predict_var)
         self.betas = make_beta_schedule(**self.conf.model.schedule)
         self.diffusion = GaussianDiffusion(betas=self.betas, **self.conf.model.diffusion)
-        self.sampler = get_time_sampler(self.conf)(self.diffusion)
+        self.sampler = get_time_sampler(self.conf.model.sampler)(self.diffusion)
 
     def forward(self, x):
         return self.diffusion.p_sample_loop(self.model, x.shape)
