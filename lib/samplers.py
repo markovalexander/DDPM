@@ -65,7 +65,7 @@ class LossSecondMomentResampler(AbstractSampler):
 
 
 def get_time_sampler(sampler_type):
-    if sampler_type == "LOSS-SECOND-MOMENT":
+    if sampler_type.upper() == "LOSS-SECOND-MOMENT":
         return LossSecondMomentResampler
     else:
         return UniformSampler
