@@ -178,7 +178,7 @@ class GaussianDiffusion(nn.Module):
             large_log_var = extract(large_log_var, t, x.shape)
             small_log_var = extract(small_log_var, t, x.shape)
 
-            var_coef = (var_coef + 1) / 2   # [-1, 1] to [0, 1]
+            var_coef = (var_coef + 1) / 2  # [-1, 1] to [0, 1]
             log_var = var_coef * large_log_var + (1 - var_coef) * small_log_var
             var = torch.exp(log_var)
         else:
@@ -292,8 +292,7 @@ class GaussianDiffusion(nn.Module):
 
         # At the first timestep return the decoder NLL, otherwise return KL(q(x_{t-1}|x_t,x_0) || p(x_{t-1}|x_t))
         output = torch.where(t == 0, decoder_nll, kl)
-
-        return (output, pred_x0) if return_pred_x0 else output
+        return {'output': output, "pred_x0": pred_x0 if return_pred_x0 else None}
 
     def training_losses(self, model, x_0, t, noise=None):
 
@@ -301,14 +300,11 @@ class GaussianDiffusion(nn.Module):
             noise = torch.randn_like(x_0)
 
         x_t = self.q_sample(x_0=x_0, t=t, noise=noise)
-
-        # Calculate the loss
         if self.loss_type == 'kl':
-            # the variational bound
-            losses = self._vb_terms_bpd(model=model, x_0=x_0, x_t=x_t, t=t, clip_denoised=False, return_pred_x0=False)
+            losses = self._vb_terms_bpd(model=model, x_0=x_0, x_t=x_t, t=t,
+                                        clip_denoised=False, return_pred_x0=False)['output']
 
         elif self.loss_type == 'mse':
-            # unweighted MSE
             assert self.model_var_type != 'learned'
             target = {
                 'xprev': self.q_posterior_mean_variance(x_0=x_0, x_t=x_t, t=t)[0],
@@ -347,18 +343,15 @@ class GaussianDiffusion(nn.Module):
         for t in reversed(range(self.num_timesteps)):
             t_b = torch.full((B,), t, dtype=torch.int64)
 
-            # Calculate VLB term at the current timestep
-            new_vals_b, pred_x0 = self._vb_terms_bpd(model=model,
-                                                     x_0=x_0,
-                                                     x_t=self.q_sample(x_0=x_0, t=t_b),
-                                                     t=t_b,
-                                                     clip_denoised=clip_denoised,
-                                                     return_pred_x0=True)
-
-            # MSE for progressive prediction loss
+            vb_terms = self._vb_terms_bpd(model=model,
+                                          x_0=x_0,
+                                          x_t=self.q_sample(x_0=x_0, t=t_b),
+                                          t=t_b,
+                                          clip_denoised=clip_denoised,
+                                          return_pred_x0=True)
+            new_vals_b, pred_x0 = vb_terms['output'], vb_terms["pred_x0"]
             new_mse_b = torch.mean((pred_x0 - x_0).view(B, -1) ** 2, dim=1)
 
-            # Insert the calculated term into the tensor of all terms
             mask_bt = (t_b[:, None] == torch.arange(T)[None, :]).to(torch.float32)
 
             new_vals_bt = new_vals_bt * (1. - mask_bt) + new_vals_b[:, None] * mask_bt
