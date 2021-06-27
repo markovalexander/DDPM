@@ -17,7 +17,6 @@ data:
       num_workers: 4
       drop_last: False
 
-
 model:
   unet:
     in_channel: 3
@@ -65,4 +64,3 @@ trainer:
   sample_dir: "./samples/"
   prog_sample_freq: 200
   precision: 32
-
