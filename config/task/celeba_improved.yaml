@@ -1,0 +1,69 @@
+seed: 42
+train: True
+
+data:
+  dataset:
+    name: "CELEBA"
+    path: "~/data/celeba_data/"
+    resolution: 128
+
+  dataloaders:
+    train:
+      batch_size: 32
+      num_workers: 2
+      drop_last: True
+
+    validation:
+      batch_size: 32
+      num_workers: 1
+      drop_last: False
+
+
+model:
+  unet:
+    in_channel: 3
+    channel: 128
+    channel_multiplier:
+      - 1
+      - 1
+      - 2
+      - 2
+      - 4
+      - 4
+    n_res_blocks: 2
+    attn_strides:
+      - 16
+    dropout: 0.0
+    fold: 1
+
+  diffusion:
+    model_mean_type: "eps"
+    model_var_type: "learned"
+    loss_type: "hybrid"
+
+  schedule:
+    type: "cosine"
+    start: 1e-4
+    end: 2e-2
+    n_timestep: 4000
+
+  optimizer:
+    type: "adam"
+    lr: 2e-5
+
+  evaluate:
+    wandb: False
+    log_every: 500
+    save_every: 5000
+    valid_every: 5000
+
+trainer:
+  ckpt_dir: "./checkpoints/"
+  ckpt_freq: 20
+  n_iter: 500000
+  n_gpu: 2
+  model_dir: "./final/cifar10.ckpt"
+  sample_dir: "./samples/"
+  prog_sample_freq: 200
+  precision: 32
+
