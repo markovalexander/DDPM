@@ -51,6 +51,8 @@ model:
     type: "adam"
     lr: 2e-5
 
+  sampler: "loss-second-moment"
+
   evaluate:
     wandb: False
     log_every: 500

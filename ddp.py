@@ -5,7 +5,7 @@ from torch import nn, optim
 
 from lib.model import UNet
 from lib.diffusion import GaussianDiffusion, make_beta_schedule
-from lib.samplers import UniformSampler
+from lib.samplers import get_time_sampler
 from utils import accumulate
 
 
@@ -22,7 +22,7 @@ class DDP(pl.LightningModule):
         self.ema = UNet(**self.conf.model.unet, predict_var=predict_var)
         self.betas = make_beta_schedule(**self.conf.model.schedule)
         self.diffusion = GaussianDiffusion(betas=self.betas, **self.conf.model.diffusion)
-        self.sampler = UniformSampler(self.diffusion)
+        self.sampler = get_time_sampler(self.conf)(self.diffusion)
 
     def forward(self, x):
         return self.diffusion.p_sample_loop(self.model, x.shape)
@@ -41,6 +41,7 @@ class DDP(pl.LightningModule):
         #                      dtype=torch.int64, device=img.device)
         time, weights = self.sampler.sample(img.size(0), device=img.device)
         loss = self.diffusion.training_losses(self.model, img, time)
+        self.sampler.update_with_all_losses(time, loss)
         loss = torch.mean(loss * weights)
         accumulate(self.ema, self.model.module if isinstance(self.model, nn.DataParallel) else self.model, 0.9999)
 
