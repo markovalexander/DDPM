@@ -40,8 +40,8 @@ def train(cfg):
                          precision=cfg.task.trainer.precision,
                          gradient_clip_val=1.,
                          progress_bar_refresh_rate=20,
-                         checkpoint_callback=checkpoint_callback,
-                         callbacks=[image_logger_callback],
+                         checkpoint_callback=True,
+                         callbacks=[checkpoint_callback, image_logger_callback],
                          logger=pl_logger,
                          accelerator='dp')
     trainer.fit(denoising_diffusion_model, dm)
