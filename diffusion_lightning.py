@@ -29,7 +29,8 @@ def train(cfg):
 
     checkpoint_path = hydra.utils.get_original_cwd() / Path(cfg.task.trainer.ckpt_dir) / Path(name)
     pl.seed_everything(cfg.task.seed)
-
+    
+    logger.info("checkpoints will be saved in " + str(checkpoint_path))
     denoising_diffusion_model = DDP(cfg.task)
     dm = get_datamodule(cfg.task.data)
     checkpoint_callback = get_checkpoint_callback(checkpoint_path)
