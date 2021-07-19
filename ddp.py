@@ -1,10 +1,12 @@
-from torch import nn, optim
-from lib.model import UNet
-from lib.diffusion import GaussianDiffusion, make_beta_schedule
 import pytorch_lightning as pl
 import torch
-from torchvision.utils import make_grid
-from utils import accumulate, progressive_samples_fn
+
+from torch import nn, optim
+
+from lib.model import UNet
+from lib.diffusion import GaussianDiffusion, make_beta_schedule
+from lib.samplers import get_time_sampler
+from utils import accumulate
 
 
 class DDP(pl.LightningModule):
@@ -20,6 +22,7 @@ class DDP(pl.LightningModule):
         self.ema = UNet(**self.conf.model.unet, predict_var=predict_var)
         self.betas = make_beta_schedule(**self.conf.model.schedule)
         self.diffusion = GaussianDiffusion(betas=self.betas, **self.conf.model.diffusion)
+        self.sampler = get_time_sampler(self.conf.model.sampler)(self.diffusion)
 
     def forward(self, x):
         return self.diffusion.p_sample_loop(self.model, x.shape)
@@ -34,10 +37,12 @@ class DDP(pl.LightningModule):
 
     def training_step(self, batch, batch_ix):
         img, _ = batch
-        time = torch.randint(size=(img.shape[0], ), low=0, high=self.conf.model.schedule.n_timestep,
-                             dtype=torch.int64, device=img.device)
-        loss = self.diffusion.training_losses(self.model, img, time).mean()
-
+        # time = torch.randint(size=(img.shape[0],), low=0, high=self.conf.model.schedule.n_timestep,
+        #                      dtype=torch.int64, device=img.device)
+        time, weights = self.sampler.sample(img.size(0), device=img.device)
+        loss = self.diffusion.training_losses(self.model, img, time)
+        self.sampler.update_with_all_losses(time, loss)
+        loss = torch.mean(loss * weights)
         accumulate(self.ema, self.model.module if isinstance(self.model, nn.DataParallel) else self.model, 0.9999)
 
         self.log('train_loss', loss, logger=True)
@@ -45,9 +50,9 @@ class DDP(pl.LightningModule):
 
     def validation_step(self, batch, batch_ix):
         img, _ = batch
-        time = torch.randint(size=(img.shape[0], ), low=0, high=self.conf.model.schedule.n_timestep,
-                             dtype=torch.int64, device=img.device)
-        loss = self.diffusion.training_losses(self.ema, img, time).mean()
+        time, weights = self.sampler.sample(img.size(0), device=img.device)
+        loss = self.diffusion.training_losses(self.model, img, time)
+        loss = torch.mean(loss * weights)
         return {'val_loss': loss}
 
     def validation_epoch_end(self, outputs):

@@ -3,7 +3,7 @@ import pytorch_lightning as pl
 import logging
 import wandb
 
-from lib.dataset import get_datamodule
+from lib.datasets import get_datamodule
 from ddp import DDP
 
 from callbacks import get_checkpoint_callback, ImageLoggerCallback
