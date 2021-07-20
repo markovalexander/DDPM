@@ -38,8 +38,8 @@ model:
 
   diffusion:
     model_mean_type: "eps"
-    model_var_type: "learned_improved"
-    loss_type: "hybrid"
+    model_var_type: "fixedlarge"
+    loss_type: "msee"
 
   schedule:
     type: "cosine"
